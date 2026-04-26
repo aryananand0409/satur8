@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { hsbToHex, luma, scoreGuess, generateColors } from './colorUtils'
 import GuessCard from './components/GuessCard'
 import FinalCard from './components/FinalCard'
@@ -673,6 +674,7 @@ export default function App() {
           Scoring
         </button>
       </footer>
+      <Analytics />
     </div>
   )
 }
