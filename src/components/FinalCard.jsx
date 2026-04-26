@@ -6,11 +6,27 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
   const maxScore = scores.length * 10;
   const [copied, setCopied] = useState(false);
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
-    navigator.clipboard?.writeText(`Satur8 ${total.toFixed(2)}/${maxScore}\n${bars}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    const text = `Satur8 ${total.toFixed(2)}/${maxScore}\n${bars}`;
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.position = 'fixed';
+      el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   // Same horizontal padding as the buttons row
@@ -145,7 +161,8 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
           style={{
             flex: 1, padding: "10px",
             background: t.btnBg, border: `1px solid ${t.border}`,
-            color: t.textDim, borderRadius: 9, cursor: "pointer",
+            color: t.text, fontWeight: 600,
+            borderRadius: 9, cursor: "pointer",
             fontSize: 12, fontFamily: "inherit",
             transition: "opacity 0.15s",
           }}

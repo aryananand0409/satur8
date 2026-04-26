@@ -9,7 +9,7 @@ const CheckIcon = () => (
   </svg>
 );
 
-export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W, H, t }) {
+export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W, H, t, isMobile = false }) {
   // Internal state — targetColor never touches these
   const [h, setH] = useState(0);
   const [s, setS] = useState(50);
@@ -29,7 +29,7 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const btnBg = l > 0.55 ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.88)";
   const btnColor = l > 0.55 ? "#000" : "#111";
 
-  const panelW = Math.round(W * 0.31);
+  const panelW = isMobile ? Math.round(W * 0.28) : Math.round(W * 0.31);
   const slotW = Math.floor(panelW / 3);
   const lastW = panelW - slotW * 2;
 

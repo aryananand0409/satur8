@@ -120,8 +120,8 @@ function makeTheme(dark) {
 }
 
 // ── Constants ──────────────────────────────────────────────────────────────────
-const CARD_W = 520
-const CARD_H = 400
+const BASE_W = 520
+const BASE_H = 400
 const INTRO_W = 480
 const INTRO_H = 350
 const TOTAL_ROUNDS = 5
@@ -242,7 +242,7 @@ function IntroCard({ onPlay, t }) {
 const HOLD_MS = 300
 const SLIDE_MS = 180
 
-function MemorizeCard({ color, round, totalRounds, onDone }) {
+function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_H, isMobile = false }) {
   const [stage, setStage] = useState('ready')
   const [wordOpacity, setWordOpacity] = useState(0)
   const [elapsed, setElapsed] = useState(0)
@@ -300,6 +300,9 @@ function MemorizeCard({ color, round, totalRounds, onDone }) {
 
   const countdown = Math.ceil((MEMORIZE_MS - elapsed) / 10)
   const display = String(Math.max(0, countdown)).padStart(3, '0')
+  const timerFontSize = isMobile
+    ? Math.min(80, Math.round(W * 0.20))
+    : Math.min(80, Math.round(W * 0.22))
 
   const wordLabel = stage === 'ready' ? 'ready'
                   : stage === 'set'   ? 'set'
@@ -308,8 +311,8 @@ function MemorizeCard({ color, round, totalRounds, onDone }) {
 
   return (
     <div style={{
-      width: CARD_W,
-      height: CARD_H,
+      width: W,
+      height: H,
       borderRadius: 18,
       background: bg,
       transition: 'background 0.25s ease',
@@ -323,25 +326,26 @@ function MemorizeCard({ color, round, totalRounds, onDone }) {
         </div>
       )}
 
-      <div style={{ position: 'absolute', top: 14, right: 18 }}>
+      <div style={{ position: 'absolute', top: 14, right: 18, maxWidth: '90%', overflow: 'hidden' }}>
         {wordLabel && (
           <div style={{
             opacity: wordOpacity,
             transition: `opacity ${SLIDE_MS}ms ease`,
-            fontSize: 48,
+            fontSize: timerFontSize,
             fontWeight: 500,
             lineHeight: 1,
             letterSpacing: '-0.03em',
-            color: textColor,
+            color: isBlack ? '#fff' : strong,
             fontVariantNumeric: 'tabular-nums',
             userSelect: 'none',
+            display: 'block',
           }}>
             {wordLabel}
           </div>
         )}
         {stage === 'timer' && (
           <div style={{
-            fontSize: 96,
+            fontSize: timerFontSize,
             fontWeight: 500,
             lineHeight: 1,
             letterSpacing: '-0.03em',
@@ -364,7 +368,9 @@ function MemorizeCard({ color, round, totalRounds, onDone }) {
 }
 
 // ── ResultCard ─────────────────────────────────────────────────────────────────
-function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext }) {
+function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext, W = BASE_W, H = BASE_H }) {
+  if (!targetColor || !guessColor || score === null || score === undefined) return null
+
   const gHex = hsbToHex(...guessColor)
   const tHex = hsbToHex(...targetColor)
   const gl = luma(...guessColor)
@@ -403,10 +409,12 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
     return () => window.removeEventListener('keydown', handler)
   }, [onNext])
 
+  const fontSize = Math.min(80, Math.round((W || BASE_W) * 0.22))
+
   return (
     <div style={{
-      width: CARD_W,
-      height: CARD_H,
+      width: W,
+      height: H,
       borderRadius: 16,
       overflow: 'hidden',
       display: 'flex',
@@ -419,7 +427,7 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
         <div style={{ fontSize: 11, color: gDim, letterSpacing: '0.04em' }}>{round} / {totalRounds}</div>
 
         <div style={{ position: 'absolute', top: 20, right: 24, textAlign: 'right' }}>
-          <div style={{ fontSize: 96, fontWeight: 500, lineHeight: 1, color: gInk, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
+          <div style={{ fontSize, fontWeight: 500, lineHeight: 1, color: gInk, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
             {displayed.toFixed(2)}
           </div>
           <div style={{
@@ -486,6 +494,21 @@ export default function App() {
   const [scores, setScores] = useState([])
   const [lastGuess, setLastGuess] = useState(null)
   const [lastScore, setLastScore] = useState(null)
+  const [vw, setVw] = useState(window.innerWidth)
+  const [vh, setVh] = useState(window.innerHeight)
+
+  useEffect(() => {
+    const handle = () => { setVw(window.innerWidth); setVh(window.innerHeight) }
+    window.addEventListener('resize', handle)
+    return () => window.removeEventListener('resize', handle)
+  }, [])
+
+  const isMobile = vw < 768
+  const HEADER_H = 49
+  const FOOTER_H = 41
+  const availableH = vh - HEADER_H - FOOTER_H
+  const CARD_W = isMobile ? vw - 32 : BASE_W
+  const CARD_H = isMobile ? Math.round(availableH * 0.65) : BASE_H
 
   const t = makeTheme(dark)
 
@@ -571,6 +594,9 @@ export default function App() {
             round={round + 1}
             totalRounds={TOTAL_ROUNDS}
             onDone={() => setScreen('guess')}
+            W={CARD_W}
+            H={CARD_H}
+            isMobile={isMobile}
           />
         )}
         {screen === 'guess' && colors[round] && (
@@ -583,6 +609,7 @@ export default function App() {
             W={CARD_W}
             H={CARD_H}
             t={t}
+            isMobile={isMobile}
           />
         )}
         {screen === 'result' && lastGuess && (
@@ -594,6 +621,8 @@ export default function App() {
             round={round + 1}
             totalRounds={TOTAL_ROUNDS}
             onNext={onNext}
+            W={CARD_W}
+            H={CARD_H}
           />
         )}
         {screen === 'final' && (
