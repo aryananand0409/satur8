@@ -64,8 +64,8 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
         }}
       >
         <VSlider value={h} min={0} max={360} onChange={setH} gradient={hueGrad} slotW={slotW} label="H" />
-        <VSlider value={b} min={0} max={100} onChange={setBr} gradient={briGrad} slotW={slotW} label="B" invert />
-        <VSlider value={s} min={0} max={100} onChange={setS} gradient={satGrad} slotW={lastW} label="S" invert />
+        <VSlider value={s} min={0} max={100} onChange={setS} gradient={satGrad} slotW={slotW} label="S" invert />
+        <VSlider value={b} min={0} max={100} onChange={setBr} gradient={briGrad} slotW={lastW} label="B" invert />
       </div>
 
       {/* Color preview */}
