@@ -121,10 +121,56 @@ export function luma(h, s, b) {
   return (0.299 * r + 0.587 * g + 0.114 * bl) / 255;
 }
 
+function deltaE(hsb1, hsb2) {
+  return ciede2000(rgbToLab(...hsbToRgb(...hsb1)), rgbToLab(...hsbToRgb(...hsb2)));
+}
+
+const PALETTE_FAMILIES = [
+  { h: [0, 30],    s: [70, 95], b: [50, 85] },  // red / coral
+  { h: [30, 60],   s: [70, 95], b: [50, 80] },  // orange / amber
+  { h: [60, 90],   s: [55, 85], b: [40, 70] },  // yellow / olive
+  { h: [90, 185],  s: [55, 90], b: [35, 70] },  // green / teal
+  { h: [185, 260], s: [55, 90], b: [35, 75] },  // sky / blue / indigo
+  { h: [260, 310], s: [55, 85], b: [35, 70] },  // violet / purple
+  { h: [310, 360], s: [60, 90], b: [45, 80] },  // pink / magenta
+];
+
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function pickFromFamily({ h, s, b }) {
+  return [randInt(h[0], h[1]), randInt(s[0], s[1]), randInt(b[0], b[1])];
+}
+
 export function generateColors(n = 5) {
-  return Array.from({ length: n }, () => [
-    Math.floor(Math.random() * 360),
-    50 + Math.floor(Math.random() * 50),
-    45 + Math.floor(Math.random() * 50),
-  ]);
+  const families = shuffle(PALETTE_FAMILIES).slice(0, n);
+  const result = [];
+  const MIN_DELTA_E = 25;
+  const MAX_ATTEMPTS = 50;
+
+  for (const family of families) {
+    let candidate;
+    let attempts = 0;
+
+    do {
+      candidate = pickFromFamily(family);
+      attempts++;
+      const tooClose = result.some(existing => deltaE(existing, candidate) < MIN_DELTA_E);
+      if (!tooClose) break;
+    } while (attempts < MAX_ATTEMPTS);
+
+    result.push(candidate);
+  }
+
+  return result;
 }

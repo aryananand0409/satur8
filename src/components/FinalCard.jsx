@@ -1,0 +1,174 @@
+import { useState } from "react";
+import { hsbToHex } from "../colorUtils";
+
+export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome, W, t }) {
+  const total = scores.reduce((a, b) => a + b, 0);
+  const maxScore = scores.length * 10;
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = () => {
+    const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
+    navigator.clipboard?.writeText(`Satur8 ${total.toFixed(2)}/${maxScore}\n${bars}`);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Same horizontal padding as the buttons row
+  const PADDING = 22;
+  const squareRowW = W - PADDING * 2;
+  const GAP = 3;
+  const squareSize = Math.floor((squareRowW - GAP * (colors.length - 1)) / colors.length);
+
+  return (
+    <div
+      style={{
+        width: W,
+        borderRadius: 18,
+        overflow: "hidden",
+        background: t.cardBg,
+        animation: "popIn 0.35s ease",
+        flexShrink: 0,
+        transition: "background 0.3s",
+        border: `1px solid ${t.border}`,
+      }}
+    >
+      {/* ── Total score ── */}
+      <div style={{ padding: "28px 28px 20px", textAlign: "center" }}>
+        <div style={{
+          fontSize: 10,
+          color: t.textDim,
+          letterSpacing: "0.12em",
+          marginBottom: 6,
+          textTransform: "uppercase",
+        }}>
+          total score
+        </div>
+        <div style={{
+          fontSize: 96,
+          fontWeight: 500,
+          lineHeight: 1,
+          letterSpacing: "-0.03em",
+          fontVariantNumeric: "tabular-nums",
+          color: t.text,
+        }}>
+          {total.toFixed(2)}
+        </div>
+        <div style={{ fontSize: 11, color: t.textDim, marginTop: 4 }}>
+          / {maxScore}.00
+        </div>
+      </div>
+
+      {/* ── Diagonal squares ── */}
+      <div style={{
+        padding: `0 ${PADDING}px`,
+        marginBottom: 20,
+      }}>
+        <div style={{ display: "flex", gap: 3 }}>
+          {colors.map((targetHsb, i) => {
+            const targetHex = hsbToHex(...targetHsb);
+            const guessHex = hsbToHex(...guesses[i]);
+            const sc = scores[i];
+
+            return (
+              <div
+                key={i}
+                style={{
+                  width: squareSize,
+                  height: squareSize,
+                  position: "relative",
+                  overflow: "hidden",
+                  flexShrink: 0,
+                  borderRadius: 6,
+                }}
+              >
+                <svg
+                  width={squareSize}
+                  height={squareSize}
+                  viewBox={`0 0 ${squareSize} ${squareSize}`}
+                  style={{ display: "block" }}
+                  preserveAspectRatio="none"
+                >
+                  {/* Top-left triangle — target color */}
+                  <polygon
+                    points={`0,0 ${squareSize},0 0,${squareSize}`}
+                    fill={targetHex}
+                  />
+                  {/* Bottom-right triangle — guess color */}
+                  <polygon
+                    points={`${squareSize},0 ${squareSize},${squareSize} 0,${squareSize}`}
+                    fill={guessHex}
+                  />
+                </svg>
+
+                {/* Score top-left */}
+                <div style={{
+                  position: "absolute",
+                  top: 5,
+                  left: 5,
+                  fontSize: 10,
+                  fontWeight: 600,
+                  color: "#fff",
+                  letterSpacing: "-0.02em",
+                  fontVariantNumeric: "tabular-nums",
+                  textShadow: "0 1px 4px rgba(0,0,0,0.5)",
+                  lineHeight: 1,
+                }}>
+                  {sc.toFixed(2)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Actions ── */}
+      <div style={{ padding: `0 ${PADDING}px ${PADDING}px`, display: "flex", gap: 8 }}>
+        <button
+          onClick={onHome}
+          title="Home"
+          style={{
+            width: 40, height: 40, flexShrink: 0,
+            background: t.btnBg, border: `1px solid ${t.border}`,
+            color: t.textDim, borderRadius: 9, cursor: "pointer",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "opacity 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = "0.5"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 6.5L7 2l5 4.5V12H9.5V8.5h-3V12H2V6.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <button
+          onClick={handleShare}
+          style={{
+            flex: 1, padding: "10px",
+            background: t.btnBg, border: `1px solid ${t.border}`,
+            color: t.textDim, borderRadius: 9, cursor: "pointer",
+            fontSize: 12, fontFamily: "inherit",
+            transition: "opacity 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = "0.55"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        >
+          {copied ? "✓ copied" : "share"}
+        </button>
+        <button
+          onClick={onPlayAgain}
+          style={{
+            flex: 1, padding: "10px",
+            background: t.btnBg, border: `1px solid ${t.border}`,
+            color: t.text, borderRadius: 9, cursor: "pointer",
+            fontSize: 12, fontWeight: 600, fontFamily: "inherit",
+            transition: "opacity 0.15s",
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = "0.55"}
+          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+        >
+          play again
+        </button>
+      </div>
+    </div>
+  );
+}

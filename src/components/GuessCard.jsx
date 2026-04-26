@@ -20,8 +20,8 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const hueGrad = `linear-gradient(to bottom, ${
     Array.from({ length: 37 }, (_, i) => hsbToHex(i * 10, 100, 100)).join(",")
   })`;
-  const satGrad = `linear-gradient(to bottom, ${hsbToHex(h, 0, b)}, ${hsbToHex(h, 100, b)})`;
-  const briGrad = `linear-gradient(to bottom, ${hsbToHex(h, s, 0)}, ${hsbToHex(h, s, 100)})`;
+  const satGrad = `linear-gradient(to bottom, ${hsbToHex(h, 100, b)}, ${hsbToHex(h, 0, b)})`;
+  const briGrad = `linear-gradient(to bottom, ${hsbToHex(h, s, 100)}, ${hsbToHex(h, s, 0)})`;
 
   const hex = hsbToHex(h, s, b);
   const l = luma(h, s, b);
@@ -64,8 +64,8 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
         }}
       >
         <VSlider value={h} min={0} max={360} onChange={setH} gradient={hueGrad} slotW={slotW} label="H" />
-        <VSlider value={s} min={0} max={100} onChange={setS} gradient={satGrad} slotW={slotW} label="S" />
-        <VSlider value={b} min={0} max={100} onChange={setBr} gradient={briGrad} slotW={lastW} label="B" />
+        <VSlider value={b} min={0} max={100} onChange={setBr} gradient={briGrad} slotW={slotW} label="B" invert />
+        <VSlider value={s} min={0} max={100} onChange={setS} gradient={satGrad} slotW={lastW} label="S" invert />
       </div>
 
       {/* Color preview */}
@@ -81,7 +81,7 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
           {round} / {totalRounds}
         </div>
         <div style={{ position: "absolute", top: 14, right: 14, fontSize: 9, color: meta, letterSpacing: "0.04em" }}>
-          HueHunt
+          Satur8
         </div>
         <div style={{ position: "absolute", bottom: 60, left: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: meta, fontVariantNumeric: "tabular-nums", letterSpacing: "0.01em" }}>

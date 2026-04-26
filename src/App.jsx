@@ -1,14 +1,97 @@
 import { useState, useEffect, useRef } from 'react'
 import { hsbToHex, luma, scoreGuess, generateColors } from './colorUtils'
 import GuessCard from './components/GuessCard'
+import FinalCard from './components/FinalCard'
+import ScoringCard from './components/ScoringCard'
+
+const FLAVOR = {
+  perfect: [
+    "Photographic memory. Suspicious.",
+    "Are you even human?",
+    "Perfect. We're watching you.",
+  ],
+  extraordinary: [
+    "Your cones are working overtime.",
+    "That's not memory. That's a gift.",
+    "Pantone would hire you.",
+    "Frighteningly close.",
+    "Your eyes don't lie.",
+  ],
+  excellent: [
+    "Almost pixel-perfect.",
+    "Your brain held that well.",
+    "Color theory runs in your blood.",
+    "Close enough to hurt.",
+    "You've done this before.",
+  ],
+  good: [
+    "Pretty close, actually.",
+    "The vibe was right. The shade, mostly.",
+    "You had the right neighborhood.",
+    "Solid memory. Imperfect execution.",
+    "Not bad. Not great. Honest.",
+  ],
+  decent: [
+    "You got the family, not the face.",
+    "Close-ish. In a generous light.",
+    "The hue was willing. The eye was weak.",
+    "Somewhere in the right timezone.",
+    "You got the vibe, not the shade.",
+  ],
+  off: [
+    "That's a cousin, not a twin.",
+    "Same neighborhood, wrong house.",
+    "Your memory rounded aggressively.",
+    "Close enough for horseshoes. Not this.",
+    "The color forgives you. We don't.",
+  ],
+  bad: [
+    "Your memory is in a different area code.",
+    "Bold choice. Wrong choice.",
+    "That's a different color. Entirely.",
+    "You saw something. Not that.",
+    "Confident. Incorrect. Interesting.",
+  ],
+  veryBad: [
+    "Did you guess with your eyes closed?",
+    "That's not even the same temperature.",
+    "Warm vs cool. Pick a side.",
+    "Your eyes and your brain had a falling out.",
+    "We showed you a color. You showed us nothing.",
+  ],
+  catastrophic: [
+    "Were you even looking?",
+    "Truly, spectacularly wrong.",
+    "A bold tribute to a color that wasn't there.",
+    "This will not be spoken of again.",
+    "Historical. In the worst way.",
+  ],
+};
+
+const _lastFlavorIdx = {};
 
 function flavorText(s) {
-  if (s >= 9.5) return 'Dialed in. Perfectly.'
-  if (s >= 8.5) return 'Almost pixel-perfect.'
-  if (s >= 7)   return 'Pretty close, actually.'
-  if (s >= 5)   return 'You got the vibe, not the shade.'
-  if (s >= 3)   return 'Your memory is in a different area code.'
-  return 'Were you even looking?'
+  const tier =
+    s >= 10   ? 'perfect'
+  : s >= 9.5  ? 'extraordinary'
+  : s >= 8.5  ? 'excellent'
+  : s >= 7.5  ? 'good'
+  : s >= 6.0  ? 'decent'
+  : s >= 4.5  ? 'off'
+  : s >= 3.0  ? 'bad'
+  : s >= 1.5  ? 'veryBad'
+  : 'catastrophic';
+
+  const options = FLAVOR[tier];
+  const lastIdx = _lastFlavorIdx[tier] ?? -1;
+
+  let idx;
+  do {
+    idx = Math.floor(Math.random() * options.length);
+  } while (options.length > 1 && idx === lastIdx);
+
+  _lastFlavorIdx[tier] = idx;
+  return options[idx];
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────────
@@ -149,23 +232,55 @@ function IntroCard({ onPlay, t }) {
         color: t.textDim,
         letterSpacing: '0.04em',
       }}>
-        HueHunt
+        Satur8
       </div>
     </div>
   )
 }
 
 // ── MemorizeCard ───────────────────────────────────────────────────────────────
+const HOLD_MS = 300
+const SLIDE_MS = 180
+
 function MemorizeCard({ color, round, totalRounds, onDone }) {
+  const [stage, setStage] = useState('ready')
+  const [wordOpacity, setWordOpacity] = useState(0)
   const [elapsed, setElapsed] = useState(0)
-  const startRef = useRef(Date.now())
+  const startRef = useRef(null)
   const rafRef = useRef(null)
   const firedRef = useRef(false)
 
+  const hex = hsbToHex(...color)
+  const l = luma(...color)
+  const strong = l > 0.55 ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.78)'
+  const dim = l > 0.55 ? 'rgba(0,0,0,0.3)' : 'rgba(255,255,255,0.3)'
+
   useEffect(() => {
-    startRef.current = Date.now()
-    firedRef.current = false
-    setElapsed(0)
+    const words = ['ready', 'set', 'go', 'silence']
+    let current = 0
+
+    const runWord = () => {
+      setStage(words[current])
+      setWordOpacity(0)
+      const t1 = setTimeout(() => setWordOpacity(1), 30)
+      const t2 = setTimeout(() => setWordOpacity(0), 30 + HOLD_MS)
+      const t3 = setTimeout(() => {
+        current += 1
+        if (current < words.length) runWord()
+        else {
+          setStage('timer')
+          startRef.current = Date.now()
+          firedRef.current = false
+        }
+      }, 30 + HOLD_MS + SLIDE_MS)
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+    }
+
+    runWord()
+  }, [round])
+
+  useEffect(() => {
+    if (stage !== 'timer') return
     const tick = () => {
       const e = Date.now() - startRef.current
       setElapsed(e)
@@ -177,62 +292,73 @@ function MemorizeCard({ color, round, totalRounds, onDone }) {
     }
     rafRef.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafRef.current)
-  }, [round])
+  }, [stage])
 
-  const remaining = Math.max(0, MEMORIZE_MS - elapsed)
-  const countdown = Math.ceil(remaining / 10)
+  const isBlack = stage === 'ready' || stage === 'set'
+  const bg = isBlack ? '#000' : hex
+  const textColor = isBlack ? '#fff' : strong
+
+  const countdown = Math.ceil((MEMORIZE_MS - elapsed) / 10)
   const display = String(Math.max(0, countdown)).padStart(3, '0')
-  const hex = hsbToHex(...color)
-  const l = luma(...color)
-  const dim    = l > 0.55 ? 'rgba(0,0,0,0.28)'    : 'rgba(255,255,255,0.28)'
-  const strong = l > 0.55 ? 'rgba(0,0,0,0.65)'    : 'rgba(255,255,255,0.75)'
+
+  const wordLabel = stage === 'ready' ? 'ready'
+                  : stage === 'set'   ? 'set'
+                  : stage === 'go'    ? 'go'
+                  : null
 
   return (
     <div style={{
       width: CARD_W,
       height: CARD_H,
-      borderRadius: 16,
-      background: hex,
+      borderRadius: 18,
+      background: bg,
+      transition: 'background 0.25s ease',
       position: 'relative',
       overflow: 'hidden',
-      animation: 'popIn 0.25s ease',
+      flexShrink: 0,
     }}>
-      <div style={{
-        position: 'absolute',
-        top: 16,
-        left: 18,
-        fontSize: 12,
-        color: dim,
-        fontWeight: 500,
-        letterSpacing: '0.04em',
-      }}>
-        {round} / {totalRounds}
-      </div>
-
-      {/* Timer — top right */}
-      <div style={{ position: 'absolute', top: 14, right: 18, textAlign: 'right' }}>
-        <div style={{
-          fontSize: 96,
-          fontWeight: 500,
-          lineHeight: 1,
-          color: strong,
-          letterSpacing: '-0.03em',
-          fontVariantNumeric: 'tabular-nums',
-        }}>
-          {display}
+      {stage === 'timer' && (
+        <div style={{ position: 'absolute', top: 16, left: 18, fontSize: 11, color: dim, fontWeight: 500, letterSpacing: '0.05em' }}>
+          {round} / {totalRounds}
         </div>
+      )}
+
+      <div style={{ position: 'absolute', top: 14, right: 18 }}>
+        {wordLabel && (
+          <div style={{
+            opacity: wordOpacity,
+            transition: `opacity ${SLIDE_MS}ms ease`,
+            fontSize: 48,
+            fontWeight: 500,
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
+            color: textColor,
+            fontVariantNumeric: 'tabular-nums',
+            userSelect: 'none',
+          }}>
+            {wordLabel}
+          </div>
+        )}
+        {stage === 'timer' && (
+          <div style={{
+            fontSize: 96,
+            fontWeight: 500,
+            lineHeight: 1,
+            letterSpacing: '-0.03em',
+            fontVariantNumeric: 'tabular-nums',
+            display: 'flex',
+          }}>
+            <span style={{ color: strong }}>{display[0]}</span>
+            <span style={{ color: l > 0.55 ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)' }}>{display[1]}{display[2]}</span>
+          </div>
+        )}
       </div>
 
-      <div style={{
-        position: 'absolute',
-        bottom: 14,
-        right: 16,
-        fontSize: 10,
-        color: dim,
-        letterSpacing: '0.04em',
-      }}>
-        HueHunt
-      </div>
+      {stage === 'timer' && (
+        <div style={{ position: 'absolute', bottom: 16, right: 18, fontSize: 9, color: dim, letterSpacing: '0.06em' }}>
+          Satur8
+        </div>
+      )}
     </div>
   )
 }
@@ -248,8 +374,15 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
   const gDim = gl > 0.55 ? 'rgba(0,0,0,0.35)'  : 'rgba(255,255,255,0.38)'
   const tDim = tl > 0.55 ? 'rgba(0,0,0,0.35)'  : 'rgba(255,255,255,0.38)'
 
+  const flavorRef = useRef(flavorText(score))
+  const [showFlavor, setShowFlavor] = useState(false)
+
   const [displayed, setDisplayed] = useState(0)
   const rafRef = useRef(null)
+  useEffect(() => {
+    const t = setTimeout(() => setShowFlavor(true), 250)
+    return () => clearTimeout(t)
+  }, [])
   useEffect(() => {
     const duration = 1100
     const start = performance.now()
@@ -289,8 +422,18 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
           <div style={{ fontSize: 96, fontWeight: 500, lineHeight: 1, color: gInk, letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
             {displayed.toFixed(2)}
           </div>
-          <div style={{ fontSize: 18, fontWeight: 500, color: gInk, marginTop: 10, lineHeight: 1.3, maxWidth: 320, textAlign: 'right' }}>
-            {flavorText(score)}
+          <div style={{
+            opacity: showFlavor ? 1 : 0,
+            transition: 'opacity 0.5s ease',
+            fontSize: 18,
+            fontWeight: 500,
+            color: gInk,
+            marginTop: 10,
+            lineHeight: 1.3,
+            maxWidth: 320,
+            textAlign: 'right',
+          }}>
+            {flavorRef.current}
           </div>
         </div>
 
@@ -333,162 +476,9 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
   )
 }
 
-// ── FinalCard ──────────────────────────────────────────────────────────────────
-function FinalCard({ scores, colors, guesses, onPlayAgain, onHome, t }) {
-  const total = scores.reduce((a, b) => a + b, 0)
-  const maxScore = scores.length * 10
-  const [copied, setCopied] = useState(false)
-
-  const handleShare = () => {
-    const rows = scores.map(s => {
-      const blocks = Math.round(s / 10 * 5)
-      return '█'.repeat(blocks) + '░'.repeat(5 - blocks)
-    }).join('\n')
-    navigator.clipboard?.writeText(`HueHunt · ${total.toFixed(2)}/${maxScore}\n${rows}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <div style={{
-      width: CARD_W,
-      borderRadius: 16,
-      overflow: 'hidden',
-      background: t.cardBg,
-      boxShadow: t.shadow,
-      animation: 'popIn 0.35s ease',
-      flexShrink: 0,
-      transition: 'background 0.3s, box-shadow 0.3s',
-    }}>
-      {/* Color comparison strip */}
-      <div style={{ display: 'flex', height: 52 }}>
-        {colors.map((c, i) => (
-          <div key={i} style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-            <div style={{ flex: 1, background: hsbToHex(...guesses[i]) }} />
-            <div style={{ flex: 1, background: hsbToHex(...c) }} />
-          </div>
-        ))}
-      </div>
-
-      {/* Total score */}
-      <div style={{ padding: '22px 28px 0', textAlign: 'center' }}>
-        <div style={{
-          fontSize: 11,
-          color: t.textDim,
-          letterSpacing: '0.1em',
-          marginBottom: 4,
-          textTransform: 'uppercase',
-        }}>
-          total score
-        </div>
-        <div style={{
-          fontSize: 96,
-          fontWeight: 500,
-          lineHeight: 1,
-          letterSpacing: '-0.03em',
-          fontVariantNumeric: 'tabular-nums',
-          color: t.text,
-        }}>
-          {total.toFixed(2)}
-        </div>
-        <div style={{ fontSize: 12, color: t.textDim, marginTop: 3 }}>
-          / {maxScore}.00
-        </div>
-      </div>
-
-      {/* Per-round breakdown */}
-      <div style={{ padding: '16px 22px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {scores.map((sc, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 20, height: 20, borderRadius: 4,
-              background: hsbToHex(...guesses[i]), flexShrink: 0,
-            }} />
-            <div style={{
-              width: 20, height: 20, borderRadius: 4,
-              background: hsbToHex(...colors[i]), flexShrink: 0,
-            }} />
-            <div style={{
-              flex: 1, height: 3, background: t.barBg,
-              borderRadius: 2, overflow: 'hidden',
-            }}>
-              <div style={{
-                width: `${sc / 10 * 100}%`,
-                height: '100%',
-                background: sc >= 8 ? '#5caf7a' : sc >= 5 ? '#c9a94e' : '#b85c5c',
-                borderRadius: 2,
-                transition: 'width 0.8s ease',
-              }} />
-            </div>
-            <div style={{
-              fontSize: 12,
-              color: t.textDim,
-              width: 34,
-              textAlign: 'right',
-              flexShrink: 0,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
-              {sc.toFixed(2)}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Actions */}
-      <div style={{ padding: '0 22px 22px', display: 'flex', gap: 8 }}>
-        <button
-          onClick={onHome}
-          title="Home"
-          style={{
-            width: 40, height: 40, flexShrink: 0,
-            background: t.btnBg, border: `1px solid ${t.border}`,
-            color: t.textDim, borderRadius: 8, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.5'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M2 6.5L7 2l5 4.5V12H9.5V8.5h-3V12H2V6.5z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-          </svg>
-        </button>
-        <button
-          onClick={handleShare}
-          style={{
-            flex: 1, padding: '10px',
-            background: t.btnBg, border: `1px solid ${t.border}`,
-            color: t.textDim, borderRadius: 8, cursor: 'pointer',
-            fontSize: 12, fontFamily: 'Inter, sans-serif',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.5'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          {copied ? '✓ copied' : 'share'}
-        </button>
-        <button
-          onClick={onPlayAgain}
-          style={{
-            flex: 1, padding: '10px',
-            background: t.btnBg, border: `1px solid ${t.border}`,
-            color: t.text, borderRadius: 8, cursor: 'pointer',
-            fontSize: 12, fontWeight: 600, fontFamily: 'Inter, sans-serif',
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.5'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-        >
-          play again
-        </button>
-      </div>
-    </div>
-  )
-}
-
 // ── App ────────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [dark, setDark] = useState(true)
+  const [dark, setDark] = useState(false)
   const [screen, setScreen] = useState('intro')
   const [colors, setColors] = useState([])
   const [round, setRound] = useState(0)
@@ -545,7 +535,7 @@ export default function App() {
             textAlign: 'left',
           }}
         >
-          HueHunt
+          Satur8
         </button>
         <button
           onClick={() => setDark(d => !d)}
@@ -566,10 +556,10 @@ export default function App() {
       <div style={{
         flex: 1,
         display: 'flex',
-        alignItems: 'center',
+        alignItems: screen === 'scoring' ? 'flex-start' : 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
-        padding: '8px',
+        overflow: screen === 'scoring' ? 'auto' : 'hidden',
+        padding: screen === 'scoring' ? '0' : '20px 12px',
       }}>
         {screen === 'intro' && (
           <IntroCard onPlay={start} t={t} />
@@ -613,8 +603,12 @@ export default function App() {
             guesses={guesses}
             onPlayAgain={start}
             onHome={() => setScreen('intro')}
+            W={CARD_W}
             t={t}
           />
+        )}
+        {screen === 'scoring' && (
+          <ScoringCard onBack={() => setScreen('intro')} t={t} />
         )}
       </div>
 
@@ -625,17 +619,30 @@ export default function App() {
         gap: 14,
         flexShrink: 0,
       }}>
-        {['v1.0', 'Privacy', 'Scoring'].map((l, i) => (
-          <span key={i} style={{
-            fontSize: 10,
-            color: t.textDim,
-            opacity: 0.6,
-            cursor: 'default',
-            letterSpacing: '0.03em',
-          }}>
+        {['v1.0', 'Privacy'].map((l, i) => (
+          <span key={i} style={{ fontSize: 10, color: t.textDim, opacity: 0.6, letterSpacing: '0.03em' }}>
             {l}
           </span>
         ))}
+        <button
+          onClick={() => setScreen('scoring')}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 10,
+            color: t.textDim,
+            opacity: 0.6,
+            letterSpacing: '0.03em',
+            fontFamily: 'inherit',
+            padding: 0,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+        >
+          Scoring
+        </button>
       </footer>
     </div>
   )

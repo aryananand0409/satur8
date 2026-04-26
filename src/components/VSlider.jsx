@@ -1,17 +1,18 @@
 import { useRef, useCallback } from "react";
 
-export default function VSlider({ value, min, max, onChange, gradient, slotW, label }) {
+export default function VSlider({ value, min, max, onChange, gradient, slotW, label, invert = false }) {
   const trackRef = useRef(null);
   const dragging = useRef(false);
 
   const getVal = useCallback(
     (clientY) => {
       const r = trackRef.current.getBoundingClientRect();
-      // pct: 0 at top, 1 at bottom — drag down = higher value
       const pct = Math.max(0, Math.min(1, (clientY - r.top) / r.height));
-      return Math.round(min + pct * (max - min));
+      return invert
+        ? Math.round(max - pct * (max - min))
+        : Math.round(min + pct * (max - min));
     },
-    [min, max]
+    [min, max, invert]
   );
 
   const onPD = (e) => {
@@ -22,8 +23,9 @@ export default function VSlider({ value, min, max, onChange, gradient, slotW, la
   const onPM = (e) => { if (dragging.current) onChange(getVal(e.clientY)); };
   const onPU = () => { dragging.current = false; };
 
-  // thumb sits lower as value increases — matches drag direction
-  const thumbPct = ((value - min) / (max - min)) * 100;
+  const thumbPct = invert
+    ? (1 - (value - min) / (max - min)) * 100
+    : ((value - min) / (max - min)) * 100;
 
   return (
     <div style={{ width: slotW, flex: 1, display: "flex", flexDirection: "column" }}>
