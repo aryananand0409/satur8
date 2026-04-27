@@ -5,6 +5,7 @@ import {
   playClick, playTransition, playMemorizeStart,
   playTick, playTickUrgent, playScoreReveal, playResultJingle,
 } from './sounds'
+import { submitScore } from './leaderboard'
 import GuessCard from './components/GuessCard'
 import FinalCard from './components/FinalCard'
 import ScoringCard from './components/ScoringCard'
@@ -515,6 +516,7 @@ export default function App() {
   const [scores, setScores] = useState([])
   const [lastGuess, setLastGuess] = useState(null)
   const [lastScore, setLastScore] = useState(null)
+  const [rankData, setRankData] = useState(null)
   const [vw, setVw] = useState(window.innerWidth)
   const [vh, setVh] = useState(window.innerHeight)
 
@@ -536,7 +538,7 @@ export default function App() {
   const start = () => {
     playTransition()
     setColors(generateColors(TOTAL_ROUNDS))
-    setRound(0); setGuesses([]); setScores([])
+    setRound(0); setGuesses([]); setScores([]); setRankData(null)
     setScreen('memorize')
   }
 
@@ -551,8 +553,17 @@ export default function App() {
   const onNext = () => {
     playTransition()
     const next = round + 1
-    if (next >= TOTAL_ROUNDS) setScreen('final')
-    else { setRound(next); setScreen('memorize') }
+    if (next >= TOTAL_ROUNDS) {
+      setRankData(null)
+      setScreen('final')
+      const totalScore = scores.reduce((a, b) => a + b, 0) + lastScore
+      if (Number.isFinite(totalScore)) {
+        submitScore(totalScore).then(result => setRankData(result ?? null)).catch(() => {})
+      }
+    } else {
+      setRound(next)
+      setScreen('memorize')
+    }
   }
 
   return (
@@ -658,6 +669,7 @@ export default function App() {
             onHome={() => setScreen('intro')}
             W={CARD_W}
             t={t}
+            rankData={rankData}
           />
         )}
         {screen === 'scoring' && (

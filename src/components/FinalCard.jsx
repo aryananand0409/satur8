@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { hsbToHex } from "../colorUtils";
 import { playClick, playFinalFanfare } from "../sounds";
 
-export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome, W, t }) {
+export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome, W, t, rankData }) {
   const total = scores.reduce((a, b) => a + b, 0);
   const maxScore = scores.length * 10;
   const [copied, setCopied] = useState(false);
@@ -53,7 +53,31 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
       }}
     >
       {/* ── Total score ── */}
-      <div style={{ padding: "28px 28px 20px", textAlign: "center" }}>
+      <div style={{ padding: "28px 28px 20px", textAlign: "center", position: "relative" }}>
+        <div style={{
+          position: "absolute",
+          top: 28,
+          left: 22,
+          textAlign: "left",
+        }}>
+          <div style={{
+            fontSize: 10,
+            color: t.textDim,
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            marginBottom: 3,
+          }}>
+            your rank
+          </div>
+          <div style={{
+            fontSize: 22,
+            color: t.textDim,
+            letterSpacing: "0.08em",
+            fontVariantNumeric: "tabular-nums",
+          }}>
+            {rankData ? `${rankData.rank}/${rankData.total}` : "—/—"}
+          </div>
+        </div>
         <div style={{
           fontSize: 10,
           color: t.textDim,
