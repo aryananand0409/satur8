@@ -1,12 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { hsbToHex } from "../colorUtils";
+import { playClick, playFinalFanfare } from "../sounds";
 
 export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome, W, t }) {
   const total = scores.reduce((a, b) => a + b, 0);
   const maxScore = scores.length * 10;
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => { playFinalFanfare(total, maxScore); }, []);
+
   const handleShare = async () => {
+    playClick();
     const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
     const text = `Satur8 ${total.toFixed(2)}/${maxScore}\n${bars}`;
 
@@ -140,7 +144,7 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
       {/* ── Actions ── */}
       <div style={{ padding: `0 ${PADDING}px ${PADDING}px`, display: "flex", gap: 8 }}>
         <button
-          onClick={onHome}
+          onClick={() => { playClick(); onHome(); }}
           title="Home"
           style={{
             width: 40, height: 40, flexShrink: 0,
@@ -172,7 +176,7 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
           {copied ? "✓ copied" : "share"}
         </button>
         <button
-          onClick={onPlayAgain}
+          onClick={() => { playClick(); onPlayAgain(); }}
           style={{
             flex: 1, padding: "10px",
             background: t.btnBg, border: `1px solid ${t.border}`,
