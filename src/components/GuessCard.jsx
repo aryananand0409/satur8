@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import VSlider from "./VSlider";
 import { hsbToHex, luma, scoreGuess } from "../colorUtils";
+import { playSliderTick, playSubmit } from "../sounds";
 
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -15,6 +16,19 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const [s, setS] = useState(50);
   const [b, setBr] = useState(50);
   const submitted = useRef(false);
+  const lastSliderTickRef = useRef(0);
+
+  const tickSlider = useCallback(() => {
+    const now = Date.now();
+    if (now - lastSliderTickRef.current >= 60) {
+      playSliderTick();
+      lastSliderTickRef.current = now;
+    }
+  }, []);
+
+  const onHChange = useCallback((v) => { setH(v); tickSlider(); }, [tickSlider]);
+  const onSChange = useCallback((v) => { setS(v); tickSlider(); }, [tickSlider]);
+  const onBChange = useCallback((v) => { setBr(v); tickSlider(); }, [tickSlider]);
 
   // Gradients built from current h/s/b — dense stops so thumb color matches card exactly
   const hueGrad = `linear-gradient(to bottom, ${
@@ -36,6 +50,7 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const handleSubmit = useCallback(() => {
     if (submitted.current) return;
     submitted.current = true;
+    playSubmit();
     onSubmit([h, s, b], scoreGuess(targetColor, [h, s, b]));
   }, [h, s, b, targetColor, onSubmit]);
 
@@ -63,9 +78,9 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
           transition: "background 0.3s",
         }}
       >
-        <VSlider value={h} min={0} max={360} onChange={setH} gradient={hueGrad} slotW={slotW} label="H" />
-        <VSlider value={s} min={0} max={100} onChange={setS} gradient={satGrad} slotW={slotW} label="S" invert />
-        <VSlider value={b} min={0} max={100} onChange={setBr} gradient={briGrad} slotW={lastW} label="B" invert />
+        <VSlider value={h} min={0} max={360} onChange={onHChange} gradient={hueGrad} slotW={slotW} label="H" />
+        <VSlider value={s} min={0} max={100} onChange={onSChange} gradient={satGrad} slotW={slotW} label="S" invert />
+        <VSlider value={b} min={0} max={100} onChange={onBChange} gradient={briGrad} slotW={lastW} label="B" invert />
       </div>
 
       {/* Color preview */}

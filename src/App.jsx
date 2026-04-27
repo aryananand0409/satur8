@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { hsbToHex, luma, scoreGuess, generateColors } from './colorUtils'
+import {
+  playClick, playTransition, playMemorizeStart,
+  playTick, playTickUrgent, playScoreReveal, playResultJingle,
+} from './sounds'
 import GuessCard from './components/GuessCard'
 import FinalCard from './components/FinalCard'
 import ScoringCard from './components/ScoringCard'
@@ -202,7 +206,7 @@ function IntroCard({ onPlay, t }) {
         We show you a color for 5 seconds.<br />Then you recreate it from memory.
       </div>
       <button
-        onClick={onPlay}
+        onClick={() => { playClick(); onPlay(); }}
         style={{
           marginTop: 12,
           padding: '10px 36px',
@@ -250,6 +254,9 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
   const startRef = useRef(null)
   const rafRef = useRef(null)
   const firedRef = useRef(false)
+  const lastTickSecRef = useRef(-1)
+
+  useEffect(() => { playMemorizeStart() }, [])
 
   const hex = hsbToHex(...color)
   const l = luma(...color)
@@ -282,9 +289,17 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
 
   useEffect(() => {
     if (stage !== 'timer') return
+    lastTickSecRef.current = -1
     const tick = () => {
       const e = Date.now() - startRef.current
       setElapsed(e)
+      const wholeSecond = Math.floor(e / 1000)
+      if (wholeSecond !== lastTickSecRef.current) {
+        lastTickSecRef.current = wholeSecond
+        const secsLeft = Math.ceil((MEMORIZE_MS - e) / 1000)
+        if (secsLeft <= 2) playTickUrgent()
+        else playTick()
+      }
       if (e >= MEMORIZE_MS) {
         if (!firedRef.current) { firedRef.current = true; onDone() }
         return
@@ -391,6 +406,11 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
     return () => clearTimeout(t)
   }, [])
   useEffect(() => {
+    playScoreReveal(score)
+    const jingleTimer = setTimeout(() => playResultJingle(score), 700)
+    return () => clearTimeout(jingleTimer)
+  }, [])
+  useEffect(() => {
     const duration = 1100
     const start = performance.now()
     const tick = (now) => {
@@ -464,7 +484,7 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
         </div>
 
         <button
-          onClick={onNext}
+          onClick={() => { playClick(); onNext(); }}
           style={{
             position: 'absolute', bottom: 20, right: 20,
             width: 52, height: 52, borderRadius: '50%',
@@ -514,12 +534,14 @@ export default function App() {
   const t = makeTheme(dark)
 
   const start = () => {
+    playTransition()
     setColors(generateColors(TOTAL_ROUNDS))
     setRound(0); setGuesses([]); setScores([])
     setScreen('memorize')
   }
 
   const onGuessSubmit = (guess, score) => {
+    playTransition()
     setLastGuess(guess); setLastScore(score)
     setGuesses(g => [...g, guess])
     setScores(s => [...s, score])
@@ -527,6 +549,7 @@ export default function App() {
   }
 
   const onNext = () => {
+    playTransition()
     const next = round + 1
     if (next >= TOTAL_ROUNDS) setScreen('final')
     else { setRound(next); setScreen('memorize') }
@@ -550,7 +573,7 @@ export default function App() {
         flexShrink: 0,
       }}>
         <button
-          onClick={() => setScreen('intro')}
+          onClick={() => { playClick(); setScreen('intro'); }}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             padding: 0, flex: 1,
@@ -562,7 +585,7 @@ export default function App() {
           Satur8
         </button>
         <button
-          onClick={() => setDark(d => !d)}
+          onClick={() => { playClick(); setDark(d => !d); }}
           title={dark ? 'Switch to light' : 'Switch to dark'}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
@@ -655,7 +678,7 @@ export default function App() {
           </span>
         ))}
         <button
-          onClick={() => setScreen('scoring')}
+          onClick={() => { playClick(); setScreen('scoring'); }}
           style={{
             background: 'none',
             border: 'none',
