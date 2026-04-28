@@ -87,13 +87,14 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
       }}
     >
       {/* ── Total score ── */}
-      <div style={{ padding: "28px 28px 20px", textAlign: "center", position: "relative" }}>
-        <div style={{
-          position: "absolute",
-          top: 28,
-          left: 22,
-          textAlign: "left",
-        }}>
+      <div style={{
+        padding: "24px 22px 16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+      }}>
+        {/* Rank — left */}
+        <div style={{ textAlign: "left" }}>
           <div style={{
             fontSize: 10,
             color: t.textDim,
@@ -106,33 +107,39 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
           <div style={{
             fontSize: 22,
             color: t.textDim,
-            letterSpacing: "0.08em",
+            letterSpacing: "0.04em",
             fontVariantNumeric: "tabular-nums",
+            fontWeight: 500,
+            lineHeight: 1,
           }}>
             {Math.round(displayedRank)}/{Math.round(displayedTotal)}
           </div>
         </div>
-        <div style={{
-          fontSize: 10,
-          color: t.textDim,
-          letterSpacing: "0.12em",
-          marginBottom: 6,
-          textTransform: "uppercase",
-        }}>
-          total score
-        </div>
-        <div style={{
-          fontSize: 96,
-          fontWeight: 500,
-          lineHeight: 1,
-          letterSpacing: "-0.03em",
-          fontVariantNumeric: "tabular-nums",
-          color: t.text,
-        }}>
-          {total.toFixed(2)}
-        </div>
-        <div style={{ fontSize: 11, color: t.textDim, marginTop: 4 }}>
-          / {maxScore}.00
+
+        {/* Total score — right */}
+        <div style={{ textAlign: "right" }}>
+          <div style={{
+            fontSize: 10,
+            color: t.textDim,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            marginBottom: 3,
+          }}>
+            total score
+          </div>
+          <div style={{
+            fontSize: 70,
+            fontWeight: 500,
+            lineHeight: 1,
+            letterSpacing: "-0.03em",
+            fontVariantNumeric: "tabular-nums",
+            color: t.text,
+          }}>
+            {total.toFixed(2)}
+          </div>
+          <div style={{ fontSize: 11, color: t.textDim, marginTop: 2 }}>
+            / {maxScore}.00
+          </div>
         </div>
       </div>
 
