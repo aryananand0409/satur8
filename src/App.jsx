@@ -517,6 +517,7 @@ export default function App() {
   const [lastGuess, setLastGuess] = useState(null)
   const [lastScore, setLastScore] = useState(null)
   const [rankData, setRankData] = useState(null)
+  const runningTotalRef = useRef(0)
   const [vw, setVw] = useState(window.innerWidth)
   const [vh, setVh] = useState(window.innerHeight)
 
@@ -539,11 +540,13 @@ export default function App() {
     playTransition()
     setColors(generateColors(TOTAL_ROUNDS))
     setRound(0); setGuesses([]); setScores([]); setRankData(null)
+    runningTotalRef.current = 0
     setScreen('memorize')
   }
 
   const onGuessSubmit = (guess, score) => {
     playTransition()
+    runningTotalRef.current += score
     setLastGuess(guess); setLastScore(score)
     setGuesses(g => [...g, guess])
     setScores(s => [...s, score])
@@ -556,7 +559,7 @@ export default function App() {
     if (next >= TOTAL_ROUNDS) {
       setRankData(null)
       setScreen('final')
-      const totalScore = scores.reduce((a, b) => a + b, 0) + lastScore
+      const totalScore = runningTotalRef.current
       if (Number.isFinite(totalScore)) {
         submitScore(totalScore).then(result => setRankData(result ?? null)).catch(() => {})
       }
