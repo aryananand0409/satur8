@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { hsbToHex } from "../colorUtils";
 import { playClick, playFinalFanfare } from "../sounds";
 
@@ -6,13 +6,47 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
   const total = scores.reduce((a, b) => a + b, 0);
   const maxScore = scores.length * 10;
   const [copied, setCopied] = useState(false);
+  const [displayedRank, setDisplayedRank] = useState(() => Math.floor(Math.random() * 999) + 1);
+  const [displayedTotal, setDisplayedTotal] = useState(() => Math.floor(Math.random() * 9999) + 1);
+  const intervalRef = useRef(null);
 
   useEffect(() => { playFinalFanfare(total, maxScore); }, []);
+
+  // Start rolling immediately on mount
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setDisplayedRank(Math.floor(Math.random() * 999) + 1);
+      setDisplayedTotal(Math.floor(Math.random() * 9999) + 1);
+    }, 80);
+    return () => clearInterval(intervalRef.current);
+  }, []);
+
+  // When rankData arrives, clear rolling and count up to real values
+  useEffect(() => {
+    if (!rankData) return;
+    clearInterval(intervalRef.current);
+    const fromRank = displayedRank;
+    const fromTotal = displayedTotal;
+    const duration = 800;
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      setDisplayedRank(fromRank + (rankData.rank - fromRank) * ease);
+      setDisplayedTotal(fromTotal + (rankData.total - fromTotal) * ease);
+      if (t < 1) requestAnimationFrame(tick);
+      else {
+        setDisplayedRank(rankData.rank);
+        setDisplayedTotal(rankData.total);
+      }
+    };
+    requestAnimationFrame(tick);
+  }, [rankData]);
 
   const handleShare = async () => {
     playClick();
     const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
-    const text = `Satur8 ${total.toFixed(2)}/${maxScore}\n${bars}`;
+    const text = `HueHunt ${total.toFixed(2)}/50 · ${rankData.rank}/${rankData.total}\n${bars}\nhttps://satur8.vercel.app`;
 
     try {
       await navigator.clipboard.writeText(text);
@@ -75,7 +109,7 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
             letterSpacing: "0.08em",
             fontVariantNumeric: "tabular-nums",
           }}>
-            {rankData ? `${rankData.rank}/${rankData.total}` : "—/—"}
+            {Math.round(displayedRank)}/{Math.round(displayedTotal)}
           </div>
         </div>
         <div style={{
@@ -186,16 +220,18 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
         </button>
         <button
           onClick={handleShare}
+          disabled={!rankData}
           style={{
             flex: 1, padding: "10px",
             background: t.btnBg, border: `1px solid ${t.border}`,
             color: t.text, fontWeight: 600,
-            borderRadius: 9, cursor: "pointer",
+            borderRadius: 9, cursor: rankData ? "pointer" : "not-allowed",
             fontSize: 12, fontFamily: "inherit",
+            opacity: rankData ? 1 : 0.35,
             transition: "opacity 0.15s",
           }}
-          onMouseEnter={e => e.currentTarget.style.opacity = "0.55"}
-          onMouseLeave={e => e.currentTarget.style.opacity = "1"}
+          onMouseEnter={rankData ? e => e.currentTarget.style.opacity = "0.55" : undefined}
+          onMouseLeave={rankData ? e => e.currentTarget.style.opacity = "1" : undefined}
         >
           {copied ? "✓ copied" : "share"}
         </button>
