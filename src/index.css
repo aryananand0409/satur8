@@ -18,6 +18,22 @@ body {
   height: 100%;
 }
 
+input[type="range"] {
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+}
+
+button {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#root {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 @keyframes popIn {
   from { opacity: 0; transform: scale(0.97); }
   to   { opacity: 1; transform: scale(1); }

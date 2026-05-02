@@ -76,6 +76,9 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
           flexShrink: 0,
           overflow: "hidden",
           transition: "background 0.3s",
+          WebkitUserSelect: "none",
+          userSelect: "none",
+          touchAction: "pan-y",
         }}
       >
         <VSlider value={h} min={0} max={360} onChange={onHChange} gradient={hueGrad} slotW={slotW} label="H" />
