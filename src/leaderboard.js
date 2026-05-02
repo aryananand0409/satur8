@@ -1,13 +1,13 @@
 import { supabase } from './supabase';
 
-async function fetchRankTotal(totalScore) {
+async function fetchRankTotal(totalScore, table) {
   const [aboveRes, totalRes] = await Promise.all([
     supabase
-      .from('scores')
+      .from(table)
       .select('*', { count: 'exact', head: true })
       .gt('total_score', totalScore),
     supabase
-      .from('scores')
+      .from(table)
       .select('*', { count: 'exact', head: true }),
   ]);
 
@@ -18,12 +18,13 @@ async function fetchRankTotal(totalScore) {
   };
 }
 
-export async function submitScore(totalScore) {
+export async function submitScore(totalScore, mode = 'classic') {
+  const table = mode === 'hard' ? 'scores_hard' : 'scores';
   const { error } = await supabase
-    .from('scores')
+    .from(table)
     .insert({ total_score: totalScore });
 
   if (error) return null;
-  return fetchRankTotal(totalScore);
+  return fetchRankTotal(totalScore, table);
 }
 

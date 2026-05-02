@@ -158,7 +158,7 @@ function SunIcon() {
 }
 
 // ── IntroCard ──────────────────────────────────────────────────────────────────
-function IntroCard({ onPlay, t }) {
+function IntroCard({ onPlay, t, mode, onModeChange }) {
   useEffect(() => {
     const handler = (e) => {
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); onPlay() }
@@ -206,6 +206,45 @@ function IntroCard({ onPlay, t }) {
       }}>
         We show you a color for 5 seconds.<br />Then you recreate it from memory.
       </div>
+      <div style={{
+        display: 'flex',
+        background: t.btnBg,
+        borderRadius: 999,
+        padding: 2,
+        gap: 2,
+        border: `0.5px solid ${t.border}`,
+        marginTop: 4,
+      }}>
+        {['classic', 'hard'].map(m => (
+          <button
+            key={m}
+            onClick={() => onModeChange(m)}
+            style={{
+              padding: '4px 14px',
+              borderRadius: 999,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 11,
+              fontFamily: 'inherit',
+              letterSpacing: '0.04em',
+              transition: 'background 0.15s, color 0.15s',
+              background: mode === m ? t.text : 'transparent',
+              color: mode === m ? t.bg : t.textDim,
+              fontWeight: mode === m ? 500 : 400,
+            }}
+          >
+            {m}
+          </button>
+        ))}
+      </div>
+      <div style={{
+        fontSize: 11,
+        color: t.textDim,
+        letterSpacing: '0.04em',
+        minHeight: 16,
+      }}>
+        {mode === 'hard' ? '3 seconds to memorize' : '5 seconds to memorize'}
+      </div>
       <button
         onClick={() => { playClick(); onPlay(); }}
         style={{
@@ -248,7 +287,8 @@ function IntroCard({ onPlay, t }) {
 const HOLD_MS = 300
 const SLIDE_MS = 180
 
-function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_H, isMobile = false }) {
+function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_H, isMobile = false, mode = 'classic' }) {
+  const memorizeMs = mode === 'hard' ? 3000 : 5000
   const [stage, setStage] = useState('ready')
   const [wordOpacity, setWordOpacity] = useState(0)
   const [elapsed, setElapsed] = useState(0)
@@ -297,11 +337,11 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
       const wholeSecond = Math.floor(e / 1000)
       if (wholeSecond !== lastTickSecRef.current) {
         lastTickSecRef.current = wholeSecond
-        const secsLeft = Math.ceil((MEMORIZE_MS - e) / 1000)
+        const secsLeft = Math.ceil((memorizeMs - e) / 1000)
         if (secsLeft <= 2) playTickUrgent()
         else playTick()
       }
-      if (e >= MEMORIZE_MS) {
+      if (e >= memorizeMs) {
         if (!firedRef.current) { firedRef.current = true; onDone() }
         return
       }
@@ -315,7 +355,7 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
   const bg = isBlack ? '#000' : hex
   const textColor = isBlack ? '#fff' : strong
 
-  const countdown = Math.ceil((MEMORIZE_MS - elapsed) / 10)
+  const countdown = Math.ceil((memorizeMs - elapsed) / 10)
   const display = String(Math.max(0, countdown)).padStart(3, '0')
   const timerFontSize = isMobile
     ? Math.min(80, Math.round(W * 0.20))
@@ -509,6 +549,7 @@ function ResultCard({ targetColor, guessColor, score, round, totalRounds, onNext
 // ── App ────────────────────────────────────────────────────────────────────────
 export default function App() {
   const [dark, setDark] = useState(false)
+  const [mode, setMode] = useState('classic')
   const [screen, setScreen] = useState('intro')
   const [colors, setColors] = useState([])
   const [round, setRound] = useState(0)
@@ -538,7 +579,7 @@ export default function App() {
 
   const start = () => {
     playTransition()
-    setColors(generateColors(TOTAL_ROUNDS))
+    setColors(generateColors(TOTAL_ROUNDS, mode))
     setRound(0); setGuesses([]); setScores([]); setRankData(null)
     runningTotalRef.current = 0
     setScreen('memorize')
@@ -561,7 +602,7 @@ export default function App() {
       setScreen('final')
       const totalScore = runningTotalRef.current
       if (Number.isFinite(totalScore)) {
-        submitScore(totalScore).then(result => setRankData(result ?? null)).catch(() => {})
+        submitScore(totalScore, mode).then(result => setRankData(result ?? null)).catch(() => {})
       }
     } else {
       setRound(next)
@@ -623,7 +664,7 @@ export default function App() {
         padding: screen === 'scoring' ? '0' : '20px 12px',
       }}>
         {screen === 'intro' && (
-          <IntroCard onPlay={start} t={t} />
+          <IntroCard onPlay={start} t={t} mode={mode} onModeChange={setMode} />
         )}
         {screen === 'memorize' && colors[round] && (
           <MemorizeCard
@@ -635,6 +676,7 @@ export default function App() {
             W={CARD_W}
             H={CARD_H}
             isMobile={isMobile}
+            mode={mode}
           />
         )}
         {screen === 'guess' && colors[round] && (
@@ -648,6 +690,7 @@ export default function App() {
             H={CARD_H}
             t={t}
             isMobile={isMobile}
+            mode={mode}
           />
         )}
         {screen === 'result' && lastGuess && (

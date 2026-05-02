@@ -1,7 +1,9 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import VSlider from "./VSlider";
 import { hsbToHex, luma, scoreGuess } from "../colorUtils";
 import { playSliderTick, playSubmit } from "../sounds";
+
+const HARD_TIMER_MS = 10000;
 
 const CheckIcon = () => (
   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
@@ -10,13 +12,14 @@ const CheckIcon = () => (
   </svg>
 );
 
-export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W, H, t, isMobile = false }) {
-  // Internal state — targetColor never touches these
+export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W, H, t, isMobile = false, mode = 'classic' }) {
   const [h, setH] = useState(0);
   const [s, setS] = useState(50);
   const [b, setBr] = useState(50);
   const submitted = useRef(false);
   const lastSliderTickRef = useRef(0);
+  const rafTimerRef = useRef(null);
+  const [remaining, setRemaining] = useState(HARD_TIMER_MS);
 
   const tickSlider = useCallback(() => {
     const now = Date.now();
@@ -30,6 +33,33 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const onSChange = useCallback((v) => { setS(v); tickSlider(); }, [tickSlider]);
   const onBChange = useCallback((v) => { setBr(v); tickSlider(); }, [tickSlider]);
 
+  const handleSubmit = useCallback(() => {
+    if (submitted.current) return;
+    submitted.current = true;
+    playSubmit();
+    onSubmit([h, s, b], scoreGuess(targetColor, [h, s, b]));
+  }, [h, s, b, targetColor, onSubmit]);
+
+  // Always keep ref pointing to latest handleSubmit to avoid stale closure in timer
+  const handleSubmitRef = useRef(handleSubmit);
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    if (mode !== 'hard') return;
+    const startTime = performance.now();
+    const tick = (now) => {
+      const rem = Math.max(0, HARD_TIMER_MS - (now - startTime));
+      setRemaining(rem);
+      if (rem <= 0) {
+        handleSubmitRef.current();
+        return;
+      }
+      rafTimerRef.current = requestAnimationFrame(tick);
+    };
+    rafTimerRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafTimerRef.current);
+  }, [mode]);
+
   // Gradients built from current h/s/b — dense stops so thumb color matches card exactly
   const hueGrad = `linear-gradient(to bottom, ${
     Array.from({ length: 37 }, (_, i) => hsbToHex(i * 10, 100, 100)).join(",")
@@ -42,17 +72,9 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
   const meta = l > 0.55 ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.3)";
   const btnBg = l > 0.55 ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.88)";
   const btnColor = l > 0.55 ? "#000" : "#111";
-
   const panelW = isMobile ? Math.round(W * 0.28) : Math.round(W * 0.31);
   const slotW = Math.floor(panelW / 3);
   const lastW = panelW - slotW * 2;
-
-  const handleSubmit = useCallback(() => {
-    if (submitted.current) return;
-    submitted.current = true;
-    playSubmit();
-    onSubmit([h, s, b], scoreGuess(targetColor, [h, s, b]));
-  }, [h, s, b, targetColor, onSubmit]);
 
   return (
     <div
@@ -64,6 +86,7 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
         display: "flex",
         animation: "popIn 0.3s ease",
         flexShrink: 0,
+        position: "relative",
       }}
     >
       {/* Slider panel */}
@@ -98,9 +121,33 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
         <div style={{ position: "absolute", top: 14, left: 14, fontSize: 11, color: meta, fontWeight: 500, letterSpacing: "0.04em" }}>
           {round} / {totalRounds}
         </div>
-        <div style={{ position: "absolute", top: 14, right: 14, fontSize: 9, color: meta, letterSpacing: "0.04em" }}>
-          Satur8
-        </div>
+        {mode === 'hard' ? (
+          <div style={{ position: "absolute", top: 14, right: 18 }}>
+            {(() => {
+              const countdown = Math.ceil(remaining / 10)
+              const display = String(Math.max(0, countdown)).padStart(3, '0')
+              const timerFontSize = Math.min(80, Math.round(W * 0.22))
+              const strong = l > 0.55 ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.78)'
+              return (
+                <div style={{
+                  fontSize: timerFontSize,
+                  fontWeight: 500,
+                  lineHeight: 1,
+                  letterSpacing: '-0.03em',
+                  fontVariantNumeric: 'tabular-nums',
+                  display: 'flex',
+                }}>
+                  <span style={{ color: strong }}>{display[0]}</span>
+                  <span style={{ color: l > 0.55 ? 'rgba(0,0,0,0.45)' : 'rgba(255,255,255,0.75)' }}>{display[1]}{display[2]}</span>
+                </div>
+              )
+            })()}
+          </div>
+        ) : (
+          <div style={{ position: "absolute", top: 14, right: 14, fontSize: 9, color: meta, letterSpacing: "0.04em" }}>
+            Satur8
+          </div>
+        )}
         <div style={{ position: "absolute", bottom: 60, left: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: meta, fontVariantNumeric: "tabular-nums", letterSpacing: "0.01em" }}>
             {hex.toUpperCase()}
@@ -134,6 +181,7 @@ export default function GuessCard({ targetColor, round, totalRounds, onSubmit, W
           <CheckIcon />
         </button>
       </div>
+
     </div>
   );
 }

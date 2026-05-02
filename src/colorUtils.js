@@ -152,7 +152,24 @@ function pickFromFamily({ h, s, b }) {
   return [randInt(h[0], h[1]), randInt(s[0], s[1]), randInt(b[0], b[1])];
 }
 
-export function generateColors(n = 5) {
+export function generateColors(n = 5, mode = 'classic') {
+  if (mode === 'hard') {
+    return Array.from({ length: n }, () => {
+      if (Math.random() < 0.45) {
+        return [
+          Math.floor(Math.random() * 360),
+          15 + Math.floor(Math.random() * 30),
+          30 + Math.floor(Math.random() * 40),
+        ];
+      }
+      return [
+        Math.floor(Math.random() * 360),
+        50 + Math.floor(Math.random() * 50),
+        45 + Math.floor(Math.random() * 50),
+      ];
+    });
+  }
+
   const families = shuffle(PALETTE_FAMILIES).slice(0, n);
   const result = [];
   const MIN_DELTA_E = 25;
