@@ -558,6 +558,7 @@ export default function App() {
   const [lastGuess, setLastGuess] = useState(null)
   const [lastScore, setLastScore] = useState(null)
   const [rankData, setRankData] = useState(null)
+  const [showPrivacy, setShowPrivacy] = useState(false)
   const runningTotalRef = useRef(0)
   const [vw, setVw] = useState(window.innerWidth)
   const [vh, setVh] = useState(window.innerHeight)
@@ -730,11 +731,26 @@ export default function App() {
         gap: 14,
         flexShrink: 0,
       }}>
-        {['v1.0', 'Privacy'].map((l, i) => (
-          <span key={i} style={{ fontSize: 10, color: t.textDim, opacity: 0.6, letterSpacing: '0.03em' }}>
-            {l}
-          </span>
-        ))}
+        <span style={{ fontSize: 10, color: t.textDim, opacity: 0.6, letterSpacing: '0.03em' }}>v1.0</span>
+        <button
+          onClick={() => setShowPrivacy(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: 10,
+            color: t.textDim,
+            opacity: 0.6,
+            letterSpacing: '0.03em',
+            fontFamily: 'inherit',
+            padding: 0,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}
+        >
+          Privacy
+        </button>
         <button
           onClick={() => { playClick(); setScreen('scoring'); }}
           style={{
@@ -756,6 +772,95 @@ export default function App() {
         </button>
       </footer>
       <Analytics />
+
+      {showPrivacy && (
+        <div
+          onClick={() => setShowPrivacy(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 100,
+            padding: '20px',
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              width: '100%',
+              maxWidth: 400,
+              borderRadius: 16,
+              background: t.cardBg,
+              border: `0.5px solid ${t.border}`,
+              padding: '28px 28px 24px',
+              position: 'relative',
+              fontFamily: 'Inter, sans-serif',
+              animation: 'popIn 0.25s ease',
+            }}
+          >
+            <button
+              onClick={() => setShowPrivacy(false)}
+              style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: t.textDim,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 4,
+                borderRadius: 6,
+                transition: 'opacity 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.5'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+              </svg>
+            </button>
+
+            <div style={{
+              fontSize: 11,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: t.textDim,
+              marginBottom: 16,
+            }}>
+              privacy
+            </div>
+
+            <div style={{
+              fontSize: 12,
+              lineHeight: 1.9,
+              color: t.textDim,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}>
+              <p style={{ margin: 0, color: t.text }}>Satur8 does not collect any personally identifiable information.</p>
+              <p style={{ margin: 0 }}>When you complete a game, your total score is submitted anonymously to our leaderboard. No name, no email address, no device identifier, and no IP address is stored alongside your score.</p>
+              <p style={{ margin: 0 }}>We do not use cookies for tracking or advertising. We do not share any data with third parties.</p>
+              <p style={{ margin: 0 }}>The only data we store is a number — your score — and the time it was submitted. Nothing that could identify you.</p>
+              <p style={{
+                margin: 0,
+                paddingTop: 12,
+                borderTop: `0.5px solid ${t.border}`,
+                color: t.textDim,
+                fontSize: 11,
+              }}>
+                In short: we know someone scored 34.17. We have no idea who.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
