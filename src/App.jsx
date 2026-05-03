@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { hsbToHex, luma, scoreGuess, generateColors } from './colorUtils'
 import {
@@ -131,7 +131,6 @@ const BASE_H = 400
 const INTRO_W = 480
 const INTRO_H = 350
 const TOTAL_ROUNDS = 5
-const MEMORIZE_MS = 5000
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 function MoonIcon() {
@@ -158,14 +157,15 @@ function SunIcon() {
 }
 
 // ── IntroCard ──────────────────────────────────────────────────────────────────
-function IntroCard({ onPlay, t, mode, onModeChange }) {
+function IntroCard({ onPlay, t, mode, onModeChange, disabled = false }) {
   useEffect(() => {
     const handler = (e) => {
+      if (disabled) return
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); onPlay() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onPlay])
+  }, [onPlay, disabled])
 
   return (
     <div style={{
@@ -325,7 +325,7 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
       return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
     }
 
-    runWord()
+    return runWord()
   }, [round])
 
   useEffect(() => {
@@ -560,8 +560,8 @@ export default function App() {
   const [rankData, setRankData] = useState(null)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const runningTotalRef = useRef(0)
-  const [vw, setVw] = useState(window.innerWidth)
-  const [vh, setVh] = useState(window.innerHeight)
+  const [vw, setVw] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1024)
+  const [vh, setVh] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 768)
 
   useEffect(() => {
     const handle = () => { setVw(window.innerWidth); setVh(window.innerHeight) }
@@ -578,13 +578,13 @@ export default function App() {
 
   const t = makeTheme(dark)
 
-  const start = () => {
+  const start = useCallback(() => {
     playTransition()
     setColors(generateColors(TOTAL_ROUNDS, mode))
     setRound(0); setGuesses([]); setScores([]); setRankData(null)
     runningTotalRef.current = 0
     setScreen('memorize')
-  }
+  }, [mode])
 
   const onGuessSubmit = (guess, score) => {
     playTransition()
@@ -595,7 +595,7 @@ export default function App() {
     setScreen('result')
   }
 
-  const onNext = () => {
+  const onNext = useCallback(() => {
     playTransition()
     const next = round + 1
     if (next >= TOTAL_ROUNDS) {
@@ -609,7 +609,7 @@ export default function App() {
       setRound(next)
       setScreen('memorize')
     }
-  }
+  }, [round, mode])
 
   return (
     <div style={{
@@ -665,7 +665,7 @@ export default function App() {
         padding: screen === 'scoring' ? '0' : '20px 12px',
       }}>
         {screen === 'intro' && (
-          <IntroCard onPlay={start} t={t} mode={mode} onModeChange={setMode} />
+          <IntroCard onPlay={start} t={t} mode={mode} onModeChange={setMode} disabled={showPrivacy} />
         )}
         {screen === 'memorize' && colors[round] && (
           <MemorizeCard

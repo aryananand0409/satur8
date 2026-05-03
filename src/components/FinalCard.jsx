@@ -29,21 +29,25 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
     const fromTotal = displayedTotal;
     const duration = 800;
     const start = performance.now();
+    let animId;
     const tick = (now) => {
       const t = Math.min(1, (now - start) / duration);
       const ease = 1 - Math.pow(1 - t, 3);
       setDisplayedRank(fromRank + (rankData.rank - fromRank) * ease);
       setDisplayedTotal(fromTotal + (rankData.total - fromTotal) * ease);
-      if (t < 1) requestAnimationFrame(tick);
-      else {
+      if (t < 1) {
+        animId = requestAnimationFrame(tick);
+      } else {
         setDisplayedRank(rankData.rank);
         setDisplayedTotal(rankData.total);
       }
     };
-    requestAnimationFrame(tick);
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
   }, [rankData]);
 
   const handleShare = async () => {
+    if (!rankData) return;
     playClick();
     const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
     const text = `HueHunt ${total.toFixed(2)}/50 · ${rankData.rank}/${rankData.total}\n${bars}\nhttps://satur8.vercel.app`;
