@@ -158,14 +158,15 @@ function SunIcon() {
 }
 
 // ── IntroCard ──────────────────────────────────────────────────────────────────
-function IntroCard({ onPlay, t, mode, onModeChange }) {
+function IntroCard({ onPlay, t, mode, onModeChange, disabled = false }) {
   useEffect(() => {
     const handler = (e) => {
+      if (disabled) return
       if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); onPlay() }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [onPlay])
+  }, [onPlay, disabled])
 
   return (
     <div style={{
@@ -665,7 +666,7 @@ export default function App() {
         padding: screen === 'scoring' ? '0' : '20px 12px',
       }}>
         {screen === 'intro' && (
-          <IntroCard onPlay={start} t={t} mode={mode} onModeChange={setMode} />
+          <IntroCard onPlay={start} t={t} mode={mode} onModeChange={setMode} disabled={showPrivacy} />
         )}
         {screen === 'memorize' && colors[round] && (
           <MemorizeCard
