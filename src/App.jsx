@@ -560,8 +560,8 @@ export default function App() {
   const [rankData, setRankData] = useState(null)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const runningTotalRef = useRef(0)
-  const [vw, setVw] = useState(window.innerWidth)
-  const [vh, setVh] = useState(window.innerHeight)
+  const [vw, setVw] = useState(() => typeof window !== 'undefined' ? window.innerWidth : 1024)
+  const [vh, setVh] = useState(() => typeof window !== 'undefined' ? window.innerHeight : 768)
 
   useEffect(() => {
     const handle = () => { setVw(window.innerWidth); setVh(window.innerHeight) }
