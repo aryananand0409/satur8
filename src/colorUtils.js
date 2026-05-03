@@ -22,7 +22,7 @@ export function rgbToLab(r, g, b) {
   const Y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750;
   const Z = (R * 0.0193339 + G * 0.1191920 + B * 0.9503041) / 1.08883;
   const fn = (t) => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
-  return [116 * fn(Y) - 16, 500 * (fn(X / 0.95047) - fn(Y)), 200 * (fn(Y) - fn(Z))];
+  return [116 * fn(Y) - 16, 500 * (fn(X) - fn(Y)), 200 * (fn(Y) - fn(Z))];
 }
 
 // CIEDE2000 — full implementation
