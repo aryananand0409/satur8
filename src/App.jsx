@@ -131,7 +131,6 @@ const BASE_H = 400
 const INTRO_W = 480
 const INTRO_H = 350
 const TOTAL_ROUNDS = 5
-const MEMORIZE_MS = 5000
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
 function MoonIcon() {
