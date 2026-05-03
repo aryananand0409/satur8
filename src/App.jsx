@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { hsbToHex, luma, scoreGuess, generateColors } from './colorUtils'
 import {
@@ -578,13 +578,13 @@ export default function App() {
 
   const t = makeTheme(dark)
 
-  const start = () => {
+  const start = useCallback(() => {
     playTransition()
     setColors(generateColors(TOTAL_ROUNDS, mode))
     setRound(0); setGuesses([]); setScores([]); setRankData(null)
     runningTotalRef.current = 0
     setScreen('memorize')
-  }
+  }, [mode])
 
   const onGuessSubmit = (guess, score) => {
     playTransition()
@@ -595,7 +595,7 @@ export default function App() {
     setScreen('result')
   }
 
-  const onNext = () => {
+  const onNext = useCallback(() => {
     playTransition()
     const next = round + 1
     if (next >= TOTAL_ROUNDS) {
@@ -609,7 +609,7 @@ export default function App() {
       setRound(next)
       setScreen('memorize')
     }
-  }
+  }, [round, mode])
 
   return (
     <div style={{
