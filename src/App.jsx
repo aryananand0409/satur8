@@ -325,7 +325,7 @@ function MemorizeCard({ color, round, totalRounds, onDone, W = BASE_W, H = BASE_
       return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
     }
 
-    runWord()
+    return runWord()
   }, [round])
 
   useEffect(() => {
