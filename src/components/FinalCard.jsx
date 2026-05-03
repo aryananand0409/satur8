@@ -47,6 +47,7 @@ export default function FinalCard({ scores, colors, guesses, onPlayAgain, onHome
   }, [rankData]);
 
   const handleShare = async () => {
+    if (!rankData) return;
     playClick();
     const bars = scores.map((s) => (s >= 8 ? "🟩" : s >= 5 ? "🟨" : "🟥")).join("");
     const text = `HueHunt ${total.toFixed(2)}/50 · ${rankData.rank}/${rankData.total}\n${bars}\nhttps://satur8.vercel.app`;
