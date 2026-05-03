@@ -170,6 +170,12 @@ export function generateColors(n = 5, mode = 'classic') {
     });
   }
 
+  if (n > PALETTE_FAMILIES.length) {
+    throw new Error(
+      `generateColors: requested ${n} colors but only ${PALETTE_FAMILIES.length} palette families exist`
+    );
+  }
+
   const families = shuffle(PALETTE_FAMILIES).slice(0, n);
   const result = [];
   const MIN_DELTA_E = 25;
